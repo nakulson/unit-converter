@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Unit Converter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .category-selector {
+            margin-bottom: 20px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .conversion-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .input-section, .output-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .formula-display {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        
+        .conversion-history {
+            margin-top: 30px;
+        }
+        
+        .history-item {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            .conversion-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Universal Unit Converter</h1>
+        
+        <div class="category-selector">
+            <label for="category">Select Category:</label>
+            <select id="category" onchange="loadUnits()">
+                <option value="">Select a category</option>
+                <option value="length">Length (Distance)</option>
+                <option value="mass">Mass (Weight)</option>
+                <option value="time">Time</option>
+                <option value="temperature">Temperature</option>
+                <option value="electric_current">Electric Current</option>
+                <option value="luminous_intensity">Luminous Intensity</option>
+                <option value="amount_of_substance">Amount of Substance</option>
+                <option value="energy">Energy</option>
+                <option value="force">Force</option>
+                <option value="pressure">Pressure</option>
+                <option value="speed">Speed (Velocity)</option>
+                <option value="volume">Volume</option>
+                <option value="area">Area</option>
+                <option value="power">Power</option>
+                <option value="frequency">Frequency</option>
+                <option value="data_storage">Data Storage</option>
+                <option value="radioactivity">Radioactivity</option>
+                <option value="magnetic_field">Magnetic Field</option>
+                <option value="angle">Angle</option>
+                <option value="sound_intensity">Sound Intensity</option>
+            </select>
+        </div>
+        
+        <div class="conversion-container">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="fromUnit">From Unit:</label>
+                    <select id="fromUnit">
+                        <option value="">Select a category first</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="inputValue">Value:</label>
+                    <input type="number" id="inputValue" placeholder="Enter value" step="any">
+                </div>
+                <button onclick="convert()">Convert</button>
+            </div>
+            
+            <div class="output-section">
+                <div class="input-group">
+                    <label for="toUnit">To Unit:</label>
+                    <select id="toUnit">
+                        <option value="">Select a category first</option>
+                    </select>
+                </div>
+                <div class="result-container">
+                    <label>Result:</label>
+                    <div class="result" id="result">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="formula-display" id="formulaDisplay">
+            <p>The conversion formula will appear here when you select units.</p>
+        </div>
+        
+        <div class="conversion-history">
+            <h3>Conversion History</h3>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Conversion factors for each unit category
+        const unitData = {
+            length: {
+                m: 1,
+                km: 1000,
+                cm: 0.01,
+                mm: 0.001,
+                µm: 0.000001,
+                nm: 1e-9,
+                "Å": 1e-10,
+                mi: 1609.344,
+                yd: 0.9144,
+                ft: 0.3048,
+                in: 0.0254,
+                "light-year": 9.461e15,
+                parsec: 3.086e16,
+                AU: 1.496e11,
+                furlong: 201.168
+            },
+            mass: {
+                kg: 1,
+                g: 0.001,
+                mg: 1e-6,
+                µg: 1e-9,
+                t: 1000,
+                stone: 6.35029,
+                lb: 0.453592,
+                oz: 0.0283495,
+                ct: 0.0002,
+                grain: 0.0000648
+            },
+            time: {
+                s: 1,
+                ms: 0.001,
+                µs: 1e-6,
+                ns: 1e-9,
+                min: 60,
+                h: 3600,
+                day: 86400,
+                week: 604800,
+                fortnight: 1209600,
+                month: 2592000,  // Approximation: 30 days
+                year: 31536000,  // Approximation: 365 days
+                decade: 315360000,
+                century: 3153600000,
+                millennium: 31536000000,
+                shake: 1e-8
+            },
+            temperature: {
+                // Special case - handled in conversion functions
+                K: "K",
+                "°C": "C",
+                "°F": "F",
+                "°R": "R",
+                "°Ré": "Re",
+                "°De": "D",
+                "°N": "N",
+                "°Rø": "Ro"
+            },
+            electric_current: {
+                A: 1,
+                mA: 0.001,
+                µA: 1e-6,
+                Bi: 10
+            },
+            luminous_intensity: {
+                cd: 1,
+                lm: 1,  // Not direct conversion, but simplified
+                lx: 1,  // Not direct conversion, but simplified
+                nt: 1,  // Not direct conversion, but simplified
+                "foot-candle": 10.764,
+                phot: 10000
+            },
+            amount_of_substance: {
+                mol: 1
+            },
+            energy: {
+                J: 1,
+                cal: 4.184,
+                kcal: 4184,
+                eV: 1.602e-19,
+                erg: 1e-7,
+                BTU: 1055.06,
+                "ft⋅lb": 1.35582,
+                Wh: 3600
+            },
+            force: {
+                N: 1,
+                dyne: 1e-5,
+                kgf: 9.80665,
+                lbf: 4.44822
+            },
+            pressure: {
+                Pa: 1,
+                bar: 100000,
+                atm: 101325,
+                torr: 133.322,
+                psi: 6894.76,
+                mbar: 100
+            },
+            speed: {
+                "m/s": 1,
+                "km/h": 0.277778,
+                mph: 0.44704,
+                knot: 0.514444,
+                "ft/s": 0.3048
+            },
+            volume: {
+                "m³": 1,
+                L: 0.001,
+                mL: 1e-6,
+                "gallon (US)": 0.00378541,
+                "gallon (UK)": 0.00454609,
+                pint: 0.000473176,
+                quart: 0.000946353,
+                cup: 0.000236588,
+                "fluid ounce": 2.95735e-5
+            },
+            area: {
+                "m²": 1,
+                ha: 10000,
+                acre: 4046.86,
+                "km²": 1000000,
+                "mi²": 2589988.11,
+                "ft²": 0.092903,
+                "in²": 0.00064516
+            },
+            power: {
+                W: 1,
+                kW: 1000,
+                MW: 1000000,
+                hp: 745.7,
+                "ft⋅lb/s": 1.35582
+            },
+            frequency: {
+                Hz: 1,
+                kHz: 1000,
+                MHz: 1000000,
+                GHz: 1000000000,
+                "rad/s": 0.159155
+            },
+            data_storage: {
+                b: 0.125,
+                B: 1,
+                KB: 1024,
+                MB: 1048576,
+                GB: 1073741824,
+                TB: 1099511627776,
+                PB: 1125899906842624
+            },
+            radioactivity: {
+                Bq: 1,
+                Ci: 3.7e10,
+                Rd: 1e6,
+                Sv: 1,  // Not direct conversion, but simplified
+                Gy: 1,  // Not direct conversion, but simplified
+                rad: 0.01,
+                rem: 0.01
+            },
+            magnetic_field: {
+                T: 1,
+                G: 0.0001,
+                Wb: 1  // Not direct conversion, but simplified
+            },
+            angle: {
+                rad: 1,
+                "°": 0.0174533,
+                "'": 0.000290888,
+                "\"": 4.84814e-6,
+                gon: 0.015708
+            },
+            sound_intensity: {
+                dB: 1,
+                phon: 1,  // Not direct conversion, but simplified
+                sone: 1   // Not direct conversion, but simplified
+            }
+        };
+
+        // Pretty names for display
+        const categoryNames = {
+            length: "Length (Distance)",
+            mass: "Mass (Weight)",
+            time: "Time",
+            temperature: "Temperature",
+            electric_current: "Electric Current",
+            luminous_intensity: "Luminous Intensity",
+            amount_of_substance: "Amount of Substance",
+            energy: "Energy",
+            force: "Force",
+            pressure: "Pressure",
+            speed: "Speed (Velocity)",
+            volume: "Volume",
+            area: "Area",
+            power: "Power",
+            frequency: "Frequency",
+            data_storage: "Data Storage",
+            radioactivity: "Radioactivity",
+            magnetic_field: "Magnetic Field",
+            angle: "Angle",
+            sound_intensity: "Sound Intensity"
+        };
+
+        // Load units for selected category
+        function loadUnits() {
+            const category = document.getElementById('category').value;
+            const fromUnitSelect = document.getElementById('fromUnit');
+            const toUnitSelect = document.getElementById('toUnit');
+            
+            // Clear previous options
+            fromUnitSelect.innerHTML = '';
+            toUnitSelect.innerHTML = '';
+            
+            if (!category) {
+                fromUnitSelect.innerHTML = '<option value="">Select a category first</option>';
+                toUnitSelect.innerHTML = '<option value="">Select a category first</option>';
+                return;
+            }
+            
+            // Get units for selected category
+            const units = unitData[category];
+            
+            // Add options to selects
+            for (const unit in units) {
+                const fromOption = document.createElement('option');
+                fromOption.value = unit;
+                fromOption.textContent = unit;
+                fromUnitSelect.appendChild(fromOption);
+                
+                const toOption = document.createElement('option');
+                toOption.value = unit;
+                toOption.textContent = unit;
+                toUnitSelect.appendChild(toOption);
+            }
+            
+            // Set default values
+            if (fromUnitSelect.options.length > 0) {
+                fromUnitSelect.selectedIndex = 0;
+            }
+            if (toUnitSelect.options.length > 1) {
+                toUnitSelect.selectedIndex = 1;
+            }
+            
+            updateFormulaDisplay();
+        }
+        
+        // Update formula display based on selected units
+        function updateFormulaDisplay() {
+            const category = document.getElementById('category').value;
+            const fromUnit = document.getElementById('fromUnit').value;
+            const toUnit = document.getElementById('toUnit').value;
+            
+            if (!category || !fromUnit || !toUnit) {
+                document.getElementById('formulaDisplay').innerHTML = 
+                    '<p>The conversion formula will appear here when you select units.</p>';
+                return;
+            }
+            
+            let formulaHtml = '';
+            
+            // Handle temperature separately
+            if (category === 'temperature') {
+                const formulas = getTemperatureFormulas(fromUnit, toUnit);
+                formulaHtml = `
+                    <p><strong>Conversion Formula:</strong></p>
+                    <p>${formulas.explanation}</p>
+                `;
+            } else {
+                // Regular unit conversion
+                const fromFactor = unitData[category][fromUnit];
+                const toFactor = unitData[category][toUnit];
+                
+                formulaHtml = `
+                    <p><strong>Conversion Formula:</strong></p>
+                    <p>1 ${fromUnit} = ${(fromFactor / toFactor).toFixed(6)} ${toUnit}</p>
+                    <p>To convert: value in ${fromUnit} × ${(fromFactor / toFactor).toFixed(6)} = value in ${toUnit}</p>
+                `;
+            }
+            
+            document.getElementById('formulaDisplay').innerHTML = formulaHtml;
+        }
+        
+        // Get temperature conversion formulas
+        function getTemperatureFormulas(fromUnit, toUnit) {
+            const from = fromUnit.replace('°', '');
+            const to = toUnit.replace('°', '');
+            
+            const formulas = {
+                // Celsius to others
+                "C-K": {
+                    formula: "K = °C + 273.15",
+                    explanation: "Kelvin = Celsius + 273.15"
+                },
+                "C-F": {
+                    formula: "°F = (°C × 9/5) + 32",
+                    explanation: "Fahrenheit = (Celsius × 9/5) + 32"
+                },
+                "C-R": {
+                    formula: "°R = (°C + 273.15) × 9/5",
+                    explanation: "Rankine = (Celsius + 273.15) × 9/5"
+                },
+                "C-Re": {
+                    formula: "°Ré = °C × 4/5",
+                    explanation: "Réaumur = Celsius × 4/5"
+                },
+                "C-D": {
+                    formula: "°De = (100 - °C) × 3/2",
+                    explanation: "Delisle = (100 - Celsius) × 3/2"
+                },
+                "C-N": {
+                    formula: "°N = °C × 33/100",
+                    explanation: "Newton = Celsius × 33/100"
+                },
+                "C-Ro": {
+                    formula: "°Rø = (°C × 21/40) + 7.5",
+                    explanation: "Rømer = (Celsius × 21/40) + 7.5"
+                },
+                
+                // Kelvin to others
+                "K-C": {
+                    formula: "°C = K - 273.15",
+                    explanation: "Celsius = Kelvin - 273.15"
+                },
+                "K-F": {
+                    formula: "°F = (K × 9/5) - 459.67",
+                    explanation: "Fahrenheit = (Kelvin × 9/5) - 459.67"
+                },
+                "K-R": {
+                    formula: "°R = K × 9/5",
+                    explanation: "Rankine = Kelvin × 9/5"
+                },
+                "K-Re": {
+                    formula: "°Ré = (K - 273.15) × 4/5",
+                    explanation: "Réaumur = (Kelvin - 273.15) × 4/5"
+                },
+                "K-D": {
+                    formula: "°De = (373.15 - K) × 3/2",
+                    explanation: "Delisle = (373.15 - Kelvin) × 3/2"
+                },
+                "K-N": {
+                    formula: "°N = (K - 273.15) × 33/100",
+                    explanation: "Newton = (Kelvin - 273.15) × 33/100"
+                },
+                "K-Ro": {
+                    formula: "°Rø = ((K - 273.15) × 21/40) + 7.5",
+                    explanation: "Rømer = ((Kelvin - 273.15) × 21/40) + 7.5"
+                },
+                
+                // Fahrenheit to others
+                "F-C": {
+                    formula: "°C = (°F - 32) × 5/9",
+                    explanation: "Celsius = (Fahrenheit - 32) × 5/9"
+                },
+                "F-K": {
+                    formula: "K = (°F + 459.67) × 5/9",
+                    explanation: "Kelvin = (Fahrenheit + 459.67) × 5/9"
+                },
+                "F-R": {
+                    formula: "°R = °F + 459.67",
+                    explanation: "Rankine = Fahrenheit + 459.67"
+                },
+                "F-Re": {
+                    formula: "°Ré = (°F - 32) × 4/9",
+                    explanation: "Réaumur = (Fahrenheit - 32) × 4/9"
+                },
+                "F-D": {
+                    formula: "°De = (212 - °F) × 5/6",
+                    explanation: "Delisle = (212 - Fahrenheit) × 5/6"
+                },
+                "F-N": {
+                    formula: "°N = (°F - 32) × 11/60",
+                    explanation: "Newton = (Fahrenheit - 32) × 11/60"
+                },
+                "F-Ro": {
+                    formula: "°Rø = ((°F - 32) × 7/24) + 7.5",
+                    explanation: "Rømer = ((Fahrenheit - 32) × 7/24) + 7.5"
+                }
+            };
+            
+            // Check if formula exists
+            const formulaKey = `${from}-${to}`;
+            if (formulas[formulaKey]) {
+                return formulas[formulaKey];
+            }
+            
+            // If direct formula not found, return a generic message
+            return {
+                formula: "Complex conversion",
+                explanation: `Converting from ${fromUnit} to ${toUnit} uses multiple steps.`
+            };
+        }
+        
+        // Perform temperature conversion
+        function convertTemperature(value, fromUnit, toUnit) {
+            // Remove ° symbol
+            const from = fromUnit.replace('°', '');
+            const to = toUnit.replace('°', '');
+            
+            // First convert to Kelvin (common intermediate)
+            let kelvin = 0;
+            
+            // Convert from original unit to Kelvin
+            switch (from) {
+                case 'K':
+                    kelvin = value;
+                    break;
+                case 'C':
+                    kelvin = value + 273.15;
+                    break;
+                case 'F':
+                    kelvin = (value + 459.67) * 5/9;
+                    break;
+                case 'R':
+                    kelvin = value * 5/9;
+                    break;
+                case 'Re':
+                    kelvin = value * 5/4 + 273.15;
+                    break;
+                case 'D':
+                    kelvin = 373.15 - (value * 2/3);
+                    break;
+                case 'N':
+                    kelvin = value * 100/33 + 273.15;
+                    break;
+                case 'Ro':
+                    kelvin = (value - 7.5) * 40/21 + 273.15;
+                    break;
+            }
+            
+            // Convert from Kelvin to target unit
+            let result = 0;
+            switch (to) {
+                case 'K':
+                    result = kelvin;
+                    break;
+                case 'C':
+                    result = kelvin - 273.15;
+                    break;
+                case 'F':
+                    result = kelvin * 9/5 - 459.67;
+                    break;
+                case 'R':
+                    result = kelvin * 9/5;
+                    break;
+                case 'Re':
+                    result = (kelvin - 273.15) * 4/5;
+                    break;
+                case 'D':
+                    result = (373.15 - kelvin) * 3/2;
+                    break;
+                case 'N':
+                    result = (kelvin - 273.15) * 33/100;
+                    break;
+                case 'Ro':
+                    result = ((kelvin - 273.15) * 21/40) + 7.5;
+                    break;
+            }
+            
+            return result;
+        }
+        
+        // Perform conversion
+        function convert() {
+            const category = document.getElementById('category').value;
+            const fromUnit = document.getElementById('fromUnit').value;
+            const toUnit = document.getElementById('toUnit').value;
+            const inputValue = parseFloat(document.getElementById('inputValue').value);
+            
+            if (!category || !fromUnit || !toUnit || isNaN(inputValue)) {
+                alert('Please select a category, units, and enter a valid value.');
+                return;
+            }
+            
+            let result;
+            
+            // Handle temperature conversion separately
+            if (category === 'temperature') {
+                result = convertTemperature(inputValue, fromUnit, toUnit);
+            } else {
+                // Regular conversion
+                const fromFactor = unitData[category][fromUnit];
+                const toFactor = unitData[category][toUnit];
+                result = (inputValue * fromFactor) / toFactor;
+            }
+            
+            // Display result
+            document.getElementById('result').textContent = result.toPrecision(10);
+            
+            // Add to history
+            addToHistory(category, inputValue, fromUnit, result, toUnit);
+        }
+        
+        // Add conversion to history
+        function addToHistory(category, input, fromUnit, result, toUnit) {
+            const historyList = document.getElementById('historyList');
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            historyItem.innerHTML = `
+                <p><strong>${categoryNames[category]}:</strong> ${input} ${fromUnit} = ${result.toPrecision(6)} ${toUnit}</p>
+                <p><small>${new Date().toLocaleTimeString()}</small></p>
+            `;
+            
+            // Add to beginning of list
+            if (historyList.firstChild) {
+                historyList.insertBefore(historyItem, historyList.firstChild);
+            } else {
+                historyList.appendChild(historyItem);
+            }
+            
+            // Limit history to 10 items
+            while (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+        
+        // Setup event listeners for select changes
+        document.getElementById('fromUnit').addEventListener('change', updateFormulaDisplay);
+        document.getElementById('toUnit').addEventListener('change', updateFormulaDisplay);
+        
+        // Init with first category
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-select first category for demonstration
+            const categorySelect = document.getElementById('category');
+            if (categorySelect.options.length > 1) {
+                categorySelect.selectedIndex = 1;
+                loadUnits();
+            }
+        });
+    </script>
+</body>
+</html>
